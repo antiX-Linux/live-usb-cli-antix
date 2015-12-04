@@ -879,16 +879,16 @@ copy_files()
     debug "in copy files: CHEATCODES: $CHEATCODES"
     
     # Copy and edit the configuration files
-    case "$boot_mode" in
-        ext*)
-            extlinux_cfg ;;
-        sys*)
-            syslinux_cfg ;;
-        grub)
-            grub_cfg ;;
-        *)
-            error 1 "Invalid boot mode" ;;
-    esac
+    #case "$boot_mode" in
+        #ext*)
+            #extlinux_cfg ;;
+        #sys*)
+            #syslinux_cfg ;;
+        #grub)
+            #grub_cfg ;;
+        #*)
+           # error 1 "Invalid boot mode" ;;
+    #esac
     info "Copy completed"
     return 0
 }
@@ -1033,17 +1033,28 @@ persist_make_silent()
 }
 
 # switch on INSTALL_MODE value
-# (not used)
 bootloader_cfg()   
 {
-    echo
+local boot_mode="$BOOT_MODE"
+    case "$boot_mode" in
+    ext*)
+        debug "Calling extlinux_cfg"
+        extlinux_cfg ;;
+    sys*)
+        debug "Calling isolinux_cfg"
+        isolinux_cfg ;;
+    *)
+        error 1 "Invalid boot mode" ;;
+    esac
+
 }
 
 # write syslinux.cfg
 isolinux_cfg()    
 {
-    echo "TODO: isolinux_cfg: check if syslinux can boot gfxboot menu"
+    local iso_mountpoint="$ISO_MOUNTPOINT"
     local usb_mountpoint="$USB_MOUNTPOINT"
+    local boot_mode="$BOOT_MODE"
     # Copy isolinux cfg files
     info "Copying isolinux config files from iso"
     cp -R $VERBOSE ${iso_mountpoint}/boot/isolinux ${usb_mountpoint}/boot
@@ -1051,39 +1062,13 @@ isolinux_cfg()
     # Rename isolinux directory and isolinux.cfg
     mv ${usb_mountpoint}/boot/isolinux ${usb_mountpoint}/boot/syslinux
     mv ${usb_mountpoint}/boot/syslinux/isolinux.cfg ${usb_mountpoint}/boot/syslinux/syslinux.cfg
-    touch ${usb_mountpoint}/boot/syslinux/gfxsave.on 
-    echo 1 > ${usb_mountpoint}/boot/syslinux/gfxsave.on
-}
+    #touch ${usb_mountpoint}/boot/syslinux/gfxsave.on 
+    #echo 1 > ${usb_mountpoint}/boot/syslinux/gfxsave.on
 
-# configure for extlinux: write extlinux.cfg
-# use gfxboot
-extlinux_cfg()    
-{
-    local usb_mountpoint="$USB_MOUNTPOINT"
-    # Copy syslinux cfg files
-    info "Copying syslinux directory and config files from iso and configuring for extlinux"
-    cp -R $VERBOSE ${iso_mountpoint}/boot/syslinux ${usb_mountpoint}/boot
-
-    ## Rename syslinux directory and syslinux.cfg
-    mv ${usb_mountpoint}/boot/syslinux ${usb_mountpoint}/boot/extlinux
-    mv ${usb_mountpoint}/boot/extlinux/syslinux.cfg ${usb_mountpoint}/boot/extlinux/extlinux.conf
-    touch ${usb_mountpoint}/boot/extlinux/gfxsave.on 
-    echo 1 > ${usb_mountpoint}/boot/extlinux/gfxsave.on
-    if [ -n "$CHEATCODES" ]; then
-        # Add cheat codes, like lang=fr mirror=fr to the lines starting with append
-        sed "s/APPEND.*/& ${CHEATCODES}/" ${iso_mountpoint}/boot/syslinux/syslinux.cfg > \
-                                              ${usb_mountpoint}/boot/extlinux/extlinux.conf
-    fi
-}
-
-# configure for grub
-# copy and edit menu.lst
-grub_cfg()        
-{
-    local usb_mountpoint="$USB_MOUNTPOINT"
-    # Copy grub cfg files
-    info "Copying grub directory and config files from iso and configuring for grub"
+    # Copy grub cfg files for UEFI
+    info "Copying grub directory and EFI files from iso"
     cp -R $VERBOSE ${iso_mountpoint}/boot/grub ${usb_mountpoint}/boot
+    cp -R $VERBOSE ${iso_mountpoint}/EFI ${usb_mountpoint}
 
     assert "$?" "Failed to copy grub configuaration in ${usb_mountpoint}/boot/grub"
 
@@ -1091,9 +1076,32 @@ grub_cfg()
         # add cheatcodes to each kernel line (not to "kernel /boot/memtest ..."
         # warning: sed command s in double quotes for $CHEATCODES evaluation
 
-        sed "s/kernel.*vmlinuz.*/& ${CHEATCODES}/" ${iso_mountpoint}/boot/grub/menu.lst > \
-                                          ${usb_mountpoint}/boot/grub/menu.lst
+        sed "s/linux.*vmlinuz.*/& ${CHEATCODES}/" ${iso_mountpoint}/boot/grub/grub.cfg > \
+                                          ${usb_mountpoint}/boot/grub/grub.cfg
         # end sed
+    fi
+}
+
+# configure for extlinux: write extlinux.cfg
+# use gfxboot
+extlinux_cfg()    
+{
+    local iso_mountpoint="$ISO_MOUNTPOINT"
+    local usb_mountpoint="$USB_MOUNTPOINT"
+    local boot_mode="$BOOT_MODE"
+    # Copy syslinux cfg files
+    info "Copying syslinux directory and config files from iso and configuring for extlinux"
+    cp -R $VERBOSE ${iso_mountpoint}/boot/syslinux ${usb_mountpoint}/boot
+
+    ## Rename syslinux directory and syslinux.cfg
+    mv ${usb_mountpoint}/boot/syslinux ${usb_mountpoint}/boot/extlinux
+    mv ${usb_mountpoint}/boot/extlinux/syslinux.cfg ${usb_mountpoint}/boot/extlinux/extlinux.conf
+    #touch ${usb_mountpoint}/boot/extlinux/gfxsave.on 
+    #echo 1 > ${usb_mountpoint}/boot/extlinux/gfxsave.on
+    if [ -n "$CHEATCODES" ]; then
+        # Add cheat codes, like lang=fr mirror=fr to the lines starting with append
+        sed "s/APPEND.*/& ${CHEATCODES}/" ${iso_mountpoint}/boot/syslinux/syslinux.cfg > \
+                                              ${usb_mountpoint}/boot/extlinux/extlinux.conf
     fi
 }
 
@@ -1108,9 +1116,6 @@ bootloader_install()
     sys*)
         debug "Calling syslinux_install"
         syslinux_install ;;
-    grub)
-        debug "Calling grub_install"
-        grub_install ;;
     *)
         error 1 "Invalid boot mode" ;;
     esac
@@ -1132,7 +1137,7 @@ syslinux_install()
         assert "$?" "Installation of boot loader syslinux failed."
 
         # Install MBR
-        dd bs=440 conv=notrunc count=1 if=/usr/lib/syslinux/mbr.bin of=$DEVICE
+        dd bs=440 conv=notrunc count=1 if=/usr/lib/syslinux/mbr/mbr.bin of=$DEVICE
         assert "$?" "Installation of master boot record failed."
 
         info "syslinux successfully installed to $partition1"
@@ -1155,83 +1160,13 @@ extlinux_install()
 
         # Install MBR
         debug "Installing MBR"
-        dd bs=440 conv=notrunc count=1 if=/usr/lib/syslinux/mbr.bin of=$DEVICE > /dev/null 2>&1 >> $LOGFILE
+        dd bs=440 conv=notrunc count=1 if=/usr/lib/syslinux/mbr/mbr.bin of=$DEVICE > /dev/null 2>&1 >> $LOGFILE
         assert "$?" "Installation of master boot record failed."
 
         info "extlinux successfully installed to $partition1"
         return 0
 }
 
-# run grub-install
-grub_install()        
-{
-# Grub manual:
-# ...
-# But all the above examples assume that GRUB should put images under the /boot directory.
-# If you want GRUB to put images under a directory other than /boot, you need to specify
-# the option --boot-directory. The typical usage is that you create a GRUB boot floppy with a
-# filesystem. Here is an example:
-
-    # mke2fs /dev/fd0
-    # mount -t ext2 /dev/fd0 /mnt
-    # mkdir /mnt/boot
-    # grub-install --boot-directory=/mnt/boot /dev/fd0
-    # umount /mnt
-
-# Some BIOSes have a bug of exposing the first partition of a USB drive as a floppy instead of
-# exposing the USB drive as a hard disk (they call it “USB-FDD” boot). In such cases, you need
-# to install like this:
-
-    # losetup /dev/loop0 /dev/sdb1
-    # mount /dev/loop0 /mnt/usb
-    # grub-install --boot-directory=/mnt/usb/bugbios --force --allow-floppy /dev/loop0
-
-    
-    local device="$DEVICE"
-    local mountpoint="$USB_MOUNTPOINT"
-    local device_id="$DEVICE_ID"
-    shift 2
-
-    local ev
-    local device_map disk
-
-    info "Installing grub on $device, please wait..."
-
-    grub-install --no-floppy --root-directory="$mountpoint" "$device" \
-        2>&1 >> $LOGFILE
-
-    assert "$?" "$GRUB_INSTALL failed, root-directory=$mountpoint, device=$device"
-    debug "grub-install --no-floppy --root-directory=$mountpoint $device   ...done"
-
-# Grub manual:
-# If the device map file exists, the grub shell reads it to map BIOS drives
-# to OS devices. This file consists of lines like this:
-# device file
-# device is a drive specified in the GRUB syntax (see Device syntax), and file
-# is an OS file, which is normally a device file.
-# The reason why the grub shell gives you the device map file is that it cannot
-# guess the map between BIOS drives and OS devices correctly in some environments.
-# For example, if you exchange the boot sequence between IDE and SCSI in your BIOS,
-# it gets the order wrong.
-
-    device_map="${mountpoint}/boot/grub/device.map"
-    #dev=$(echo $device |cut -d '/' -f 3) # device map used /dev/sdx syntax ?
-
-    # my device.map may looks like:
-    # (hd0)    /dev/disk/by-id/ata-VBOX_HARDDISK_VB35033ea9-fc546e74
-    # (hd1)    /dev/disk/by-id/usb-_USB_DISK_2.0_07821AB60F14-0:0
-    # my device_id is "/dev/disk/by-id/usb-_USB_DISK_2.0_07821AB60F14-0:0"
-
-    old_hdmap=$(grep ${device_id} ${device_map} | awk '{print $1}' | sed -e "s/[\(,\)]//g")
-    # here I get old_map: "hd1"
-
-    # fix the device.map file: map my device to hd0, replacing hd0 <=> hd1
-    # why keep the other entry ?
-    sed -i -e "s|(hd0)|(hdX)|" -e "s|(${old_hdmap})|(hd0)|" \
-            -e "s|(hdX)|(${old_hdmap})|" "${device_map}"
-
-    info "Grub successfully installed to $device"
-}
 
 # return value of main, used by function umount_and_exit set bu trap on exit or interrupt
 STATUS=""
@@ -1256,6 +1191,7 @@ main()
     else
         persist_make
     fi
+    bootloader_cfg
     bootloader_install
     
     # Variable used in umount_and_exit
@@ -1280,7 +1216,7 @@ CHEATCODES=""       # example: "lang=fr mean lean"
 ISO_SIZE=""         # to check against PARTITION_SIZE (iso size or du of the mounted iso)
 ANTIX_VERSION="13" # M11, M8.5; maybe we will support only version >= M11
 PARTITION_SIZE="full"   # default: full device, set by -s parameter
-PARTITION_FS="ext2"     # fat32 (syslinux), else (isolinux, grub) ext2-3-(4?)
+PARTITION_FS="ext4"     # fat32 (syslinux), else (isolinux, grub) ext2-3-(4?)
 ISO_FILENAME=""     # full path
 ISO_BASENAME=""
 DIST_NAME=""        # ISO_BASENAME, extension stripped

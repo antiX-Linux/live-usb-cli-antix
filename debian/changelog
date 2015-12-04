@@ -1,3 +1,12 @@
+live-usb-cli-antix (0.3.1) unstable; urgency=low
+ 
+  * Only 3 formal options - both working
+  * Use for syslinux 6
+  * Todo - make script work for syslinux 4
+
+ -- anticapitalista <antiX@operamail.com>  Fri, 21 Nov 2015 14:40:00 +0200
+
+
 live-usb-cli-antix (0.3.0) unstable; urgency=low
  
   * Replaced ext3 option with ext4.
