@@ -1,7 +1,7 @@
 #!/bin/bash
 
 PROGNAME=${0##*/}
-PROGVERSION="13.0.0 2013/05/13"
+PROGVERSION="13.1.0 2016/04/25"
 LOGFILE="/var/log/antix2usb.log"
 
 
@@ -1041,8 +1041,8 @@ local boot_mode="$BOOT_MODE"
         debug "Calling extlinux_cfg"
         extlinux_cfg ;;
     sys*)
-        debug "Calling isolinux_cfg"
-        isolinux_cfg ;;
+        debug "Calling syslinux_cfg"
+        syslinux_cfg ;;
     *)
         error 1 "Invalid boot mode" ;;
     esac
@@ -1050,25 +1050,25 @@ local boot_mode="$BOOT_MODE"
 }
 
 # write syslinux.cfg
-isolinux_cfg()    
+syslinux_cfg()    
 {
     local iso_mountpoint="$ISO_MOUNTPOINT"
     local usb_mountpoint="$USB_MOUNTPOINT"
     local boot_mode="$BOOT_MODE"
-    # Copy isolinux cfg files
-    info "Copying isolinux config files from iso"
-    cp -R $VERBOSE ${iso_mountpoint}/boot/isolinux ${usb_mountpoint}/boot
+    # Copy syslinux cfg files
+    info "Copying syslinux config files from iso"
+    cp -R $VERBOSE ${iso_mountpoint}/boot/syslinux ${usb_mountpoint}/boot
 
     # Rename isolinux directory and isolinux.cfg
-    mv ${usb_mountpoint}/boot/isolinux ${usb_mountpoint}/boot/syslinux
-    mv ${usb_mountpoint}/boot/syslinux/isolinux.cfg ${usb_mountpoint}/boot/syslinux/syslinux.cfg
+    #mv ${usb_mountpoint}/boot/isolinux ${usb_mountpoint}/boot/syslinux
+    #mv ${usb_mountpoint}/boot/syslinux/isolinux.cfg ${usb_mountpoint}/boot/syslinux/syslinux.cfg
     #touch ${usb_mountpoint}/boot/syslinux/gfxsave.on 
     #echo 1 > ${usb_mountpoint}/boot/syslinux/gfxsave.on
 
     # Copy grub cfg files for UEFI
     info "Copying grub directory and EFI files from iso"
     cp -R $VERBOSE ${iso_mountpoint}/boot/grub ${usb_mountpoint}/boot
-    cp -R $VERBOSE ${iso_mountpoint}/EFI ${usb_mountpoint}
+    cp -R $VERBOSE ${iso_mountpoint}/efi ${usb_mountpoint}
 
     assert "$?" "Failed to copy grub configuaration in ${usb_mountpoint}/boot/grub"
 

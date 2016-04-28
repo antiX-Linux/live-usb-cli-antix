@@ -1,10 +1,10 @@
-live-usb-cli-antix (0.3.1) unstable; urgency=low
- 
+live-usb-cli-antix (0.3.1) unstable; urgency=medium
+
   * Only 3 formal options - both working
   * Use for syslinux 6
-  * Todo - make script work for syslinux 4
+  * Changed EFI to efi 
 
- -- anticapitalista <antiX@operamail.com>  Fri, 21 Nov 2015 14:40:00 +0200
+ -- anticapitalista <antix@operamail.com>  Mon, 25 Apr 2016 17:01:39 +0300
 
 
 live-usb-cli-antix (0.3.0) unstable; urgency=low
